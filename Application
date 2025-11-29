@@ -1,0 +1,1125 @@
+##############################################################################
+######################     Choose Your Adventure!     ########################
+##############################################################################
+#### Goal: Create a python Adventure Picker application                   ####
+####       that tests the user on Python order of operations              ####
+##############################################################################
+
+###################################Imports####################################
+
+import random
+import copy
+
+#################################Method Calls#################################
+
+MASTER_EQUATION_LIST = [
+    {"name": "Unary Operators vs Exponentiation\n", "equation": "-3 ** 2", "solution": "-9", "explanation": "Why: Exponentiation (**) has higher precedence than the unary negation operator (-).\nPython evaluates 3 ** 2 first (getting 9), and then applies the negative sign.\nTo get 9, you would need (-3) ** 2.\n"},
+    {"name": "Multiplication and Division Associativity\n", "equation": "100 / 10 * 10\n", "solution": "100.0", "explanation": "Why: Multiplication (*) and Division (/) have the same precedence and are left-associative.\n100 / 10 evaluates to 10.0.\n10.0 * 10 evaluates to 100.0.\nNote: In Python 3, division always returns a float.\n"},
+    {"name": "Modulo with Negative Numbers\n", "equation": "-7 % 3\n", "solution": "2", "explanation":"Why: In Python, the result of the modulo operator (%) always has the same sign as the divisor (the number on the right).\nWhy: With negative numbers, just keep adding the divisor (3) to the starting number (-7) until the result turns positive.\nMathematically: -7 = 3 * (-3) + 2.\nTherefore, the remainder is 2.\n"},
+    {"name": "Boolean Operator Precedence\n", "equation": "True or False and False\n", "solution": "True", "explanation": "Why: and has higher precedence than or.\nFalse and False evaluate to False.\nTrue or False evaluates to True.\n"},
+    {"name": "Exponential Associativity\n", "equation": "2**3**2\n", "solution": "512", "explanation": "Why: Exponentiation (**) in Python is right-associative.\nIt is evaluated as 2 ** (3 ** 2), which is 2 ** 9, resulting in 512.\nIf it were left-associative, it would be (2 ** 3) ** 2 = 64\n"},
+    {"name": "Comparison Chaining\n", "equation": "1 < 3 > 2\n", "solution": "True", "explanation": "Why: Python supports algebraic comparison chaining.\n1 < 3 > 2 is interpreted as (1 < 3) and (3 > 2).\n1 < 3 is True.\n3 > 2 is True.\nTrue and True is True.\n"},
+    {"name": "Interaction of Booleans and Arithmetic\n", "equation": "(True + True) ** 3\n", "solution": "8", "explanation": "Why: Booleans are subclasses of integers in Python (True is 1, False is 0).\n(True + True) becomes (1 + 1) = 2.\n2 ** 3 is 8.\n"},
+    {"name": "Left-to-right Associativity.\n", "equation": "24 / 4 * 2\n", "solution": "12.0", "explanation": "Why: Multiplication and Division share the same precedence and are left-associative.\n24 / 4 happens first, resulting in 6.0.\n6.0 * 2 happens next, resulting in 12.0.\nNote: If you thought the answer was 3.0, you performed the multiplication first, which is incorrect.\n"},
+    {"name": "Exponents and Division.\n", "equation": "10 + 2 ** 3 / 2\n", "solution": "14.0", "explanation": "Why: Exponentiation (**) happens before Division (/), which happens before Addition (+).\n2 ** 3 is 8.\n8 / 2 is 4.0.\n10 + 4.0 is 14.0.\n"},
+    {"name": "Integer vs float output\n", "equation": "4 * 5 // 2 + 1.0\n", "solution": "11.0", "explanation": "Why: Operations are left-to-right for * and //.\n4 * 5 is 20.\n20 // 2 is 10 (integer).\n10 + 1.0 promotes the integer to a float, resulting in 11.0.\n"},
+    {"name": "Modulo Precedence\n", "equation": "10 - 3 % 4 + 2\n", "solution": "9", "explanation": "Why: Modulo (%) has higher precedence than subtraction and addition.\n3 % 4 is 3 (3 cannot be divided by 4, so the remainder is 3).\nThe expression becomes 10 - 3 + 2.\n10 - 3 is 7.\n7 + 2 is 9.\n"},
+    {"name": "String Operator Precedence\n", "equation": "\"1\" + \"0\" * 3\n", "solution": "1000", "explanation": "Why: String multiplication (*) has higher precedence than concatenation (+).\n\"0\" * 3 results in the string \"000\".\n\"1\" + \"000\" results in \"1000\"."},
+    {"name": "Negative Floor Division\n", "equation": "-13 // 5\n", "solution": "-3", "explanation": "Why: Floor division rounds down to the nearest integer towards negative infinity.\n-13 / 5 is -2.6.\nRounding -2.6 down gives -3."},
+    {"name": "Logical Operator Order\n", "equation": "True or True and False\n", "solution": "True", "explanation": "Why: Logical and has higher precedence than logical or.\nTrue and False evaluates to False.\nThe expression becomes True or False, which evaluates to True."},
+    {"name": "Comparison Chaining\n", "equation": "5 < 10 > 2\n", "solution": "True", "explanation": "Why: This is a chained comparison, effectively (5 < 10) and (10 > 2).\n5 < 10 is True.\n10 > 2 is True.\nTrue and True results in True."},
+    {"name": "Parentheses Priority\n", "equation": "(4 + 5) * (3 - 1) / 2\n", "solution": "9.0", "explanation": "Why: Parentheses are solved first.\n(4 + 5) is 9.\n(3 - 1) is 2.\nThe expression becomes 9 * 2 / 2.\n18 / 2 is 9.0."},
+    {"name": "Unary Negation vs. Subtraction\n", "equation": "10 - - 5 * 2\n", "solution": "20", "explanation": "Why: The unary minus (negative sign) is attached to the 5, but multiplication has higher precedence than the subtraction operator used for 10 - ....\n-5 * 2 is calculated first, resulting in -10.\nThe expression becomes 10 - (-10).\nThis evaluates to 10 + 10, which is 20.\n"},
+    {"name": "Modulo and Multiplication Mixing\n", "equation": "100 - 25 * 3 % 4\n", "solution": "97", "explanation": "Why: Multiplication and Modulo (%) have higher precedence than subtraction.\nThey are evaluated left-to-right.\n25 * 3 is 75.\n75 % 4 is 3 (75 divided by 4 leaves a remainder of 3).\n100 - 3 is 97.\n"}]
+
+def load_new_deck():
+    #return a fresh copy of the Master
+    return copy.deepcopy(MASTER_EQUATION_LIST)
+
+def draw_random_equation(current_round_deck):
+    #check to see if the deck has remaining cards
+    if not current_round_deck:
+        #if not, obtain a copy of the master from load_new_deck
+        new_deck = load_new_deck()
+        #Clean the deck
+        current_round_deck.clear()
+        #Add the new_deck to the current_deck
+        current_round_deck.extend(new_deck)
+    #get the length of the deck
+    list_boundary = len(current_round_deck) - 1
+    #choose a card
+    random_index = random.randint(0, list_boundary)
+    #pull the card from the deck
+    question_data = current_round_deck.pop(random_index)
+    #return the card data
+    return(
+        question_data["name"],
+        question_data["equation"],
+        question_data["solution"],
+        question_data["explanation"]
+    )
+
+#Call when the user selects an incorrect answer
+def wrong_answer(name, correct_questions):
+    print("Incorrect answer!\n")
+    play_again = lose(name, correct_questions)
+    return play_again
+
+#Call when the player selects a correct answer
+def correct_answer(correct_questions):
+    print("Correct! Great job!\n")
+    correct_questions+=1
+    return correct_questions
+
+#Call when the player is arrested
+def arrested(name, questions):
+    print("You were caught with a bomb and arrested.\nAfter being convicted of terrorism charges you were sentenced to life in prison.\n")
+    play_again = lose(name, questions)
+    return play_again
+
+#Call when the player cooperates with police
+def state_evidence(name, correct_questions):
+    print("You immediately surrender to the officers and agree to testify in exchange for witness protection.\n"
+          "The District Attorney uses your detailed account to build a massive case that dismantles the local crime syndicate.\n"
+          "Although you are forced to leave your old life behind, your evidence successfully puts the mob boss and his enforcers in federal prison for decades.\n")
+    play_again = winner(name, correct_questions)
+    return play_again
+
+#Call when the player is assassinated
+def assassination(name, questions):
+    print("You have been assassinated!!!\n")
+    play_again = lose(name, questions)
+    return play_again
+
+#Call when the player is caught in the explosion.
+def explode_death(name, questions):
+    print(f"The bomb explodes.\nYou are accused of terrorism posthumously.\n"
+          f"With no way to defend yourself, the name {name} goes down in infamy.\n")
+    play_again = lose(name, questions)
+    return play_again
+
+def convicted(name, questions):
+    print(f"The prosecutor reveals that the package contained components for a dirty bomb, effectively silencing your defense of ignorance.\n"
+          f"The jury returns a swift guilty verdict, labeling you a domestic terrorist rather than a victim of circumstance.\n"
+          f"You are sentenced to life in a supermax facility, where your claims of innocence echo off soundproof walls.\n")
+    play_again = lose(name, questions)
+    return play_again
+
+#Call when the player survives the explosion.
+def explode_survive(name, questions):
+    print(f"The box blows up.\nYou are convicted of terrorism charges and spend the remainder of your life in prison.\n"
+          f"The name \'{name}\' goes down in infamy!\n")
+    play_again = lose(name, questions)
+    return play_again
+
+#Restart
+def restart():
+    while True:
+        start_over = input("Press \"Y\" to start over or \"N\" to quit!\n").strip().upper()
+        if start_over == "Y":
+            return True
+        elif start_over == "N":
+            return False
+        else:
+            print("Invalid entry, please try again!\n")
+
+#Game loss dialogue
+def lose(name, correct_questions):
+    print(f"{name}, you lost! You made it through {correct_questions} questions!\nTry again to beat your score!\n")
+    retry_game = restart()
+    return retry_game
+
+#Game win dialogue
+def winner(name, correct_questions):
+    print(f"{name}, you won! You made it through {correct_questions}\n Try a different path to increase your score.\n")
+    retry_game = restart()
+    return retry_game
+
+#################################Player Tests#################################
+
+#Print the answer from the equation calculation
+def print_answer(name, equation, solution, player_solution, explanation):
+    print(f"{name}\n")
+    print(f"The problem: {str(equation)}\n")
+    print(f"The correct solution: {str(solution)}\n")
+    print(f"Your solution: {str(player_solution)}\n")
+    print(f"{explanation}\n")
+
+#Call to conduct player testing
+def test (name, correct_questions, current_round_deck):
+    equation_name, equation, solution, explanation = draw_random_equation(current_round_deck)
+    player_answer = (input(f"{equation_name}\n{equation}\n")).strip()
+    if player_answer == solution:
+        play_again = None
+        correct_questions = correct_answer(correct_questions)
+        print_answer(equation_name, equation, solution, player_answer, explanation)
+    else:
+        print_answer(equation_name, equation, solution, player_answer, explanation)
+        play_again = wrong_answer(name, correct_questions)
+    return correct_questions, play_again
+
+###################################Chapters####################################
+
+#Chapter 1
+def chapter_a1_job_offer(player_name, player_friend, the_man, correct_questions, current_round_deck):
+    print(f"A frantic man in a business suit flags you down.\n"
+          f"He introduces himself as {the_man}, explaining that his car just broke down and he is going to miss the courier cutoff for urgent architectural plans.\n"
+          f"He claims the package needs to be at a firm just a few blocks away, but he cannot leave his vehicle while the tow truck is en route.\n"
+          f"Desperate, he shoves a fifty-dollar bill and the box into your hands, begging you to run it over for him.\n")
+    player_choice = input("Can you help? Enter 1 for yes and 2 for no.\n").strip()
+    next_chapter = ""
+    start_over = None
+    if player_choice == "1":
+        next_chapter = "b1"
+    elif player_choice == "2":
+        next_chapter = "b2"
+    else:
+        print(f"{the_man} watches you hesitate, his expression shifting instantly from desperate to deadly calm.\n"
+              f"Realizing you are a liability, he sighs and reaches inside his jacket for a weapon.\n"
+              f"You try to raise your hands in defense, but he has already made up his mind to silence you.\n")
+        start_over = assassination(player_name, correct_questions)
+    return next_chapter, correct_questions, start_over, current_round_deck
+
+def chapter_b1_deliver(player_name, player_friend, the_man, correct_questions, current_round_deck):
+    next_chapter = "None"
+    start_over = None
+    correct_questions, start_over = test(player_name, correct_questions, current_round_deck)
+    if start_over is None:
+        print("The address leads you to a crumbling warehouse where high-tech security cameras swivel to track your every move.\n"
+              "You hesitate in the desolate lot, wondering if this is a mistake, when red and blue lights suddenly flood the pavement behind you.\n"
+              "A police cruiser skids to a halt, blocking the exit and trapping you against the building.\n")
+        player_choice = input("Enter 1 to surrender, 2 to run, or 3 to hide\n").strip()
+        if player_choice == "1":        #Surrender
+            next_chapter = "c1"
+        elif player_choice == "2":        #Run
+            next_chapter = "c2"
+        elif player_choice == "3":        #Hide
+            next_chapter = "c3"
+        else:
+            print("The shock of the blinding lights keeps you rooted to the spot for a second too long.\n"
+                  "Before you can drop the package or raise your hands, the officers swarm you with weapons drawn.\n"
+                  "They interpret your hesitation as resistance and forcefully slam you against the hood of the cruiser.\n"
+                  "The cold steel of handcuffs snaps shut, sealing your fate.\n")
+            start_over = arrested(player_name, correct_questions)
+    return next_chapter, correct_questions, start_over, current_round_deck
+
+def chapter_b2_refuse(player_name, player_friend, the_man, correct_questions, current_round_deck):
+    next_chapter = "None"
+    start_over = None
+    correct_questions, start_over = test(player_name, correct_questions, current_round_deck)
+    if start_over is None:
+        print("You arrive home to find your front door hanging crookedly off its shattered hinges.\n"
+              "Splintered wood covers the porch, suggesting someone forced their way inside with violent force.\n"
+              "The dark interior is ominously silent, leaving you to wonder if the intruder is still waiting for you.\n")
+        player_choice = input(f"Enter 1 to go inside, 2 to call the police, and 3 to leave and go to {player_friend}\'s house.\n").strip()
+        if player_choice == "1":              #Go inside
+            next_chapter = "c4"
+        elif player_choice == "2":              #Call the police
+            next_chapter = "c5"
+        elif player_choice == "3":              #Go to friend's house
+            next_chapter = "d2"
+        else:
+            print("The tires scream against the pavement as a heavy black truck drifts around the corner and blocks your path.\n"
+                  "Two large men in tactical gear jump out of the vehicle before it even comes to a full stop.\n"
+                  "You try to turn and run, but they cut off your only escape route.\n")
+            start_over = assassination(player_name, correct_questions)
+    return next_chapter, correct_questions, start_over, current_round_deck
+
+def chapter_c1_police(player_name, player_friend, the_man, correct_questions, current_round_deck):
+    next_chapter = "100"
+    start_over = None
+    correct_questions, start_over = test(player_name, correct_questions, current_round_deck)
+    if start_over is None:
+        start_over = state_evidence(player_name, correct_questions)
+    return next_chapter, correct_questions, start_over, current_round_deck
+
+#Run
+def chapter_c2_run(player_name, player_friend, the_man, correct_questions, current_round_deck):
+    start_over = None
+    next_chapter = "100"
+    correct_questions, start_over = test(player_name, correct_questions, current_round_deck)
+    if start_over is None:
+        print("You slam on the gas and peel out of the lot just before the officers can block you in.\n"
+              "However, the flashing lights illuminate your license plate clearly as you speed away into the night.\n"
+              "By morning, your face is on every local news channel as a person of interest in a major federal investigation.\n"
+              "You ditch your car on a side street, realizing you must live in the shadows to avoid capture.\n")
+        player_choice = input(f"What do you do?\nEnter 1 to go on the run, 2 to go to {player_friend}\'s house, or 3 to return to {the_man}").strip()
+        if player_choice == "1":           #Go on the run
+            next_chapter = "d1"
+        elif player_choice == "2":          #Go to friend
+            next_chapter = "d2"
+        elif player_choice == "3":          #Go to the_man
+            next_chapter = "d3"
+        else:
+            print("You barely make it a block before a tire blows out with a deafening pop, sending your vehicle spinning out of control.\n"
+                  "You crash into a streetlight, the airbag deploying with a cloud of dust that disorients you.\n"
+                  "Before you can recover, officers swarm the car with guns drawn and drag you out onto the pavement.\n"
+                  "The handcuffs click tight around your wrists, signaling the abrupt end of your escape.\n")
+            start_over = arrested(player_name, correct_questions)
+    return next_chapter, correct_questions, start_over, current_round_deck
+
+#Hide
+def chapter_c3_hide(player_name, player_friend, the_man, correct_questions, current_round_deck):
+    next_chapter = "100"
+    start_over = None
+    correct_questions, start_over = test(player_name, correct_questions, current_round_deck)
+    if start_over is None:
+        print("You crouch behind a rusted dumpster for hours until the last patrol car finally gives up and drives away.\n"
+              "Silence returns to the desolate lot, leaving you alone with the mysterious package and the looming warehouse.\n"
+              "With the coast finally clear, you have to decide whether to complete the delivery or escape with the box while you still can.\n")
+        player_choice = input("Enter 1 to deliver the box or 2 to take it with you.\n").strip()
+        if player_choice == "1":
+            next_chapter = "d4"
+        elif player_choice == "2":
+            next_chapter = "d5"
+        else:
+            next_chapter = "None"
+            print("Your indecision keeps you frozen in the shadows for too long, just as a patrol car circles back for a final check.\n"
+                  "A sharp beam of light suddenly cuts through the darkness and lands directly on your face.\nAn officer shouts for you to raise your hands, ending your attempt to hide before it really began.\n"
+                  "You are escorted to the cruiser in handcuffs as the package is confiscated as evidence.\n")
+            start_over = arrested(player_name, correct_questions)
+    return next_chapter, correct_questions, start_over, current_round_deck
+
+def chapter_c4_go_inside(player_name, player_friend, the_man, correct_questions, current_round_deck):
+    next_chapter = "100"
+    start_over = None
+    correct_questions, start_over = test(player_name, correct_questions, current_round_deck)
+    if start_over is None:
+        print("You nudge the splintered door further inward; the grinding sound of broken wood scraping the floor echoes in the sudden silence.\n"
+              "The living room is a scene of ruthless destruction: couch cushions slashed, lamps overturned, and the contents of every drawer scattered across the floor.\n"
+              "Though the intruder is clearly gone, the sight of your personal space utterly violated leaves you numb and shaking.\n")
+        player_choice = input("Enter 1 to search the house or 2 to go to your bedroom and get your gun.\n").strip()
+        if player_choice == "1":
+            next_chapter = "d6"
+        elif player_choice == "2":
+            next_chapter = "d7"
+        else:
+            print("You stand in the wrecked living room, paralyzed by the sheer scope of the destruction and unable to choose a course of action.\n"
+                  "Just as you finally lift your phone to call for help, a large van pulls silently back into your driveway.\n"
+                  "The search team has returned, and they are none too pleased to find the owner of the house standing amidst their mess.\n")
+            start_over = assassination(player_name, correct_questions)
+    return next_chapter, correct_questions, start_over, current_round_deck
+
+def chapter_c5_call_police(player_name, player_friend, the_man, correct_questions, current_round_deck):
+    next_chapter = "100"
+    start_over = None
+    correct_questions, start_over = test(player_name, correct_questions, current_round_deck)
+    if start_over is None:
+        print("The 911 operator assures you help is coming, but your status as a \"non-active threat\" means you are dangerously low priority.\n"
+              "Your growing frustration turns to cold dread when a black van turns the corner, confirming the return of the original intruders.\n"
+              "They spot you instantly, alone on the sidewalk, and the vehicle screeches to a halt, blocking your only escape route.\n")
+        start_over = assassination(player_name, correct_questions)
+    return next_chapter, correct_questions, start_over, current_round_deck
+
+def chapter_d1_run(player_name, player_friend, the_man, correct_questions, current_round_deck):
+    next_chapter = "100"
+    start_over = None
+    correct_questions, start_over = test(player_name, correct_questions, current_round_deck)
+    if start_over is None:
+        print("You manage to slip out of the city and check into a roadside motel under a fake name.\n"
+              "However, the clerk recognizes your face from the breaking news alert and quietly calls the authorities.\n"
+              "You wake up to the sound of a battering ram splintering your door as a SWAT team floods the room.\n"
+              "Your brief life on the run ends in shackles before you even have a chance to explain.\n")
+        player_choice = input("You sit in a cold interrogation room as a federal agent slides a plea deal across the metal table.\n"
+                              "He explains that you are looking at twenty years for conspiracy unless you help them nail the man who gave you the package.\n"
+                              "They promise witness protection and a clean record, but only if you agree to testify against the syndicate immediately.\nEnter 1 to testify, 2 to refuse.\n").strip()
+        if player_choice == "1":
+            start_over = state_evidence(player_name, correct_questions)
+        elif player_choice == "2":
+            start_over = convicted(player_name, correct_questions)
+        else:
+            print("While you waffle on the decision, police swarm the vehicle and drag the man out onto the asphalt.\n"
+                  "Desperate to cut a deal, he immediately points a shaking finger at you, shouting that you orchestrated the entire delivery.\n"
+                  "The officers waste no time shifting their aim, buying his fabricated story hook, line, and sinker.\n"
+                  "You end up in handcuffs, framed as the mastermind behind a syndicate you didn't even know existed.\n")
+            start_over = convicted(player_name, correct_questions)
+    return next_chapter, correct_questions, start_over, current_round_deck
+
+def chapter_d2_friend(player_name, player_friend, the_man, correct_questions, current_round_deck):
+    next_chapter = "100"
+    start_over = None
+    correct_questions, start_over = test(player_name, correct_questions, current_round_deck)
+    if start_over is None:
+        print(f"You pound on the door until {player_friend}, their face twisting with concern at your panicked state.\n"
+              f"They usher you inside and immediately ask why you are trembling and looking over your shoulder.\n"
+              f"You freeze, torn between dragging them into this dangerous conspiracy or lying to keep them innocent and safe.\n")
+        player_choice = input("Do you lie or tell the truth?\nEnter 1 to lie or 2 to tell the truth.\n").strip()
+        if player_choice == "1":
+            next_chapter = "e1"
+        elif player_choice == "2":
+            next_chapter = "e2"
+        else:
+            print("You collapse onto the floor, hyperventilating so severely that you cannot speak or explain the situation.\n"
+                  "Terrified for your health, your friend immediately dials 911 to get you medical help.\n"
+                  "Police arrive alongside the paramedics and instantly spot the suspicious package, which the bomb squad identifies as an explosive.\n"
+                  "You are arrested on the spot, leaving your confused friend watching in horror as you are dragged away.")
+            start_over = convicted(player_name, correct_questions)
+    return next_chapter, correct_questions, start_over, current_round_deck
+
+def chapter_d3_the_man(player_name, player_friend, the_man, correct_questions, current_round_deck):
+    next_chapter = "100"
+    start_over = None
+    correct_questions, start_over = test(player_name, correct_questions, current_round_deck)
+    if start_over is None:
+        print(f"You find {the_man} and frantically explain how the delivery went wrong and that the police are everywhere.\n"
+              f"He listens intently, gripping your shoulder and asking specifically if you mentioned his name or spoke to anyone else.\n"
+              f"When you confirm that you came alone and told no one, his worried expression instantly hardens into cold resolve.\n"
+              f"He sighs, \"That makes this easier,\" and reaches into his coat for a silenced pistol.\n")
+        start_over = assassination(player_name, correct_questions)
+    return next_chapter, correct_questions, start_over, current_round_deck
+
+def chapter_d4_deliver(player_name, player_friend, the_man, correct_questions, current_round_deck):
+    next_chapter = "100"
+    start_over = None
+    correct_questions, start_over = test(player_name, correct_questions, current_round_deck)
+    if start_over is None:
+        print("You emerge from the shadows and carry the box to the rusted steel door indicated on the label.\n"
+              "A hidden panel slides open with a mechanical hiss, revealing a dark chute waiting for the package.\n"
+              "As soon as you drop it inside, the panel snaps shut and a synthesized voice thanks you for your compliance.\n"
+              "You hurry away, the weight of the box gone, but the feeling of being watched remains.\n")
+        print("As you merge onto the main road, a pair of headlights remains stubbornly in your rearview mirror, matching your every turn.\n"
+              "You speed up to lose them, but the dark sedan accelerates right along with you.\n"
+              "Glancing back, you can just make out the silhouette of a man behind the wheel, his focus entirely locked on your vehicle.\n")
+        player_choice = input("Enter 1 to drive to the police station, 2 to call the police, 3 to go to your friend, or 4 to confront the person following you.").strip()
+        if player_choice == "1":            #Go to the police
+            next_chapter = "e3"
+        elif player_choice == "2":          #Call the police
+            next_chapter = "e4"
+        elif player_choice == "3":          #Go to friend
+            next_chapter = "d2"
+        elif player_choice == "4":          #Confront the person following you.
+            next_chapter = "e6"
+        else:
+            print("Your vehicle loses control and slams into a concrete barrier at top speed, rupturing the fuel tank.\n"
+                  "A spark instantly ignites the leaking gas, engulfing the car in a blinding sphere of fire.\n"
+                  "The world turns white-hot for a split second before the explosion consumes you completely.\n"
+                  "Your story ends in a twisted wreck of burning metal.\n")
+            start_over = explode_death(player_name, correct_questions)
+    return next_chapter, correct_questions, start_over, current_round_deck
+
+def chapter_d5_take_it(player_name, player_friend, the_man, correct_questions, current_round_deck):
+    next_chapter = "100"
+    start_over = None
+    correct_questions, start_over = test(player_name, correct_questions, current_round_deck)
+    if start_over is None:
+        print("You toss the heavy box onto the passenger seat and speed away, constantly checking your rearview mirror for flashing lights.\n"
+              "Once you hit the highway, the adrenaline begins to fade, replaced by a gnawing curiosity about what you just stole.\n"
+              "The package sits innocently next to you, but you swear you can hear a faint, rhythmic humming coming from inside.\n")
+        player_choice = input("Enter 1 to go home, 2 to go to the police, or 3 to toss the box in a random dumpster.\n").strip()
+        if player_choice == "1":            #Go home
+            next_chapter = "e7"
+        elif player_choice == "2":          #Go to police
+            next_chapter = "e8"
+        elif player_choice == "3":          #Throw it away
+            next_chapter = "f2"
+        else:
+            print("Your vehicle loses control and slams into a concrete barrier at top speed, rupturing the fuel tank.\n"
+                  "A spark instantly ignites the leaking gas, engulfing the car in a blinding sphere of fire.\n"
+                  "The world turns white-hot for a split second before the explosion consumes you completely.\n"
+                  "Your story ends in a twisted wreck of burning metal.\n")
+            start_over = explode_death(player_name, correct_questions)
+    return next_chapter, correct_questions, start_over, current_round_deck
+
+def chapter_d6_search(player_name, player_friend, the_man, correct_questions, current_round_deck):
+    next_chapter = "100"
+    start_over = None
+    correct_questions, start_over = test(player_name, correct_questions, current_round_deck)
+    if start_over is None:
+        print("You move silently through the ruined living room, stepping around overturned furniture until you reach the counter.\n"
+              "Just as you reach the kitchen, the unnerving silence is shattered by the sound of a heavy vehicle pulling up and parking right outside the front door.\n"
+              "Without hesitation, you yank the largest knife from the block, the cold steel a small comfort against the surge of returning fear.\n"
+              "You press yourself against the doorframe, the knife held low, waiting to see who just arrived.\n")
+        player_choice = input("Enter 1 to fight or 2 to escape.").strip()
+        if player_choice == "1":
+            next_chapter = "e9"
+        elif player_choice == "2":
+            next_chapter = "e10"
+        else:
+            print("You stand paralyzed, unable to decide whether to attack the front door or flee out the back.\n"
+                  "Your hesitation is fatal when the silence behind you is broken by the sound of the back door being violently kicked in.\n"
+                  "You whirl around just as a second figure storms the kitchen, trapping you between the two points of entry.\n"
+                  "You have waited too long, and now both teams have you completely surrounded.\n")
+            start_over = assassination(player_name, correct_questions)
+    return next_chapter, correct_questions, start_over, current_round_deck
+
+def chapter_d7_gun(player_name, player_friend, the_man, correct_questions, current_round_deck):
+    next_chapter = "100"
+    start_over = None
+    correct_questions, start_over = test(player_name, correct_questions, current_round_deck)
+    if start_over is None:
+        print("You rush to the bedroom safe and pull out the pistol, your hands shaking as you check the magazine and rack the slide.\n"
+              "The sharp, final click of the safety sounds deafeningly loud, confirming the gun is ready, but marking your position.\n"
+              "Before you can even turn from the closet, the distinct sound of heavy boots scraping shattered wood is heard from the front entrance.\n"
+              "You are caught flat-footed in the bedroom, armed but exposed, knowing they are already inside the house.\n")
+        player_choice = input("Enter 1 to fight, 2 to escape, or 3 to hide").strip()
+        if player_choice == "1":
+            next_chapter = "e11"
+        elif player_choice == "2":
+            next_chapter = "e10"
+        elif player_choice == "3":
+            next_chapter = "e12"
+        else:
+            print("You stand frozen in the middle of the bedroom, unable to decide whether to shoot or run for the window.\n"
+                  "The attackers sweep the downstairs rooms quickly and head straight for the second floor, their heavy boots thudding on the stairs.\n"
+                  "You hear the click of safeties releasing before they even breach the doorway, realizing your moment to act is gone.\n")
+            start_over = assassination(player_name, correct_questions)
+    return next_chapter, correct_questions, start_over, current_round_deck
+
+def chapter_e1_lie(player_name, player_friend, the_man, correct_questions, current_round_deck):
+    next_chapter = "100"
+    start_over = None
+    correct_questions, start_over = test(player_name, correct_questions, current_round_deck)
+    if start_over is None:
+        print("You force a shaky smile and lie that an abusive ex has been stalking you, conveniently leaving out the part about the police.\n"
+              "Your friend's expression softens into sympathy, and they immediately offer you their guest room to hide out.\n"
+              "They lock the door tight, unaware that they have just invited a federal investigation into their home.\n")
+        print("A deafening boom shakes the house at 3 AM, shattering the windows in the front room and jolting you from sleep.\n"
+              "Thick smoke begins to curl under your bedroom door, accompanied by the sounds of heavy boots and shouting downstairs.\n"
+              "You are trapped in the guest room, forced to choose between abandoning your host to save yourself or rushing into the chaos to find them.\n")
+        player_choice = input(f"Enter 1 to escape or 2 to save {player_friend}").strip()
+        if player_choice == "1":
+            next_chapter = "f4"
+        elif player_choice == "2":
+            next_chapter = "f5"
+        else:
+            print("The hesitation costs you everything as the bedroom door is kicked off its hinges with a splintering crash.\n"
+                  "Two masked figures storm through the smoke, their weapons raised and ready before you can even stand up.\n")
+            start_over = assassination(player_name, correct_questions)
+    return next_chapter, correct_questions, start_over, current_round_deck
+
+def chapter_e2_truth(player_name, player_friend, the_man, correct_questions, current_round_deck):
+    next_chapter = "100"
+    start_over = None
+    correct_questions, start_over = test(player_name, correct_questions, current_round_deck)
+    if start_over is None:
+        print("You pour out the entire terrifying truth, explaining the mysterious package, the mobster, and the federal investigation.\n"
+              "Your friend listens in stunned silence, their face paling as the gravity of the situation sinks in.\n"
+              "Instead of turning you away, they grab their car keys and insist that staying here is a death sentence.\n"
+              "You have gained an ally, but you know you have just painted a target on their back.\n")
+        print("You drive straight to the precinct with your friend and demand to speak to a detective.\n"
+              "Once safe inside, you pour out the entire story, detailing the man, the package, and the threats.\n"
+              "The authorities move swiftly, placing you both in protective custody while they launch a massive raid on the warehouse.\n")
+        start_over = state_evidence(player_name, correct_questions)
+    return next_chapter, correct_questions, start_over, current_round_deck
+
+def chapter_e3_police_station(player_name, player_friend, the_man, correct_questions, current_round_deck):
+    next_chapter = "100"
+    start_over = None
+    correct_questions, start_over = test(player_name, correct_questions, current_round_deck)
+    if start_over is None:
+        print("You swerve toward the precinct, hoping the sight of patrol cars will scare off your pursuer.\n"
+              "However, the black sedan accelerates to pull even with you, the passenger window gliding down to reveal a suppressed pistol.\n"
+              "A single, precise shot shatters your window and strikes you before you can even reach the station driveway.\n"
+              "Your car rolls to a stop against the curb as your vision fades to black.\n")
+        start_over = lose(player_name, correct_questions)
+    return next_chapter, correct_questions, start_over, current_round_deck
+
+def chapter_e4_call_police(player_name, player_friend, the_man, correct_questions, current_round_deck):
+    next_chapter = "100"
+    start_over = None
+    correct_questions, start_over = test(player_name, correct_questions, current_round_deck)
+    if start_over is None:
+        print("You dial 911 with trembling hands, keeping the line open while you weave through heavy traffic to ensure witnesses are always nearby.\n"
+              "Within minutes, a phalanx of patrol cars surrounds the black sedan, forcing it onto the shoulder with sirens blaring.\n"
+              "Officers drag the gunman from the vehicle, ending the chase and securing your safety on the crowded highway.\n")
+        start_over = state_evidence(player_name, correct_questions)
+    return next_chapter, correct_questions, start_over, current_round_deck
+
+def chapter_e5_boss(player_name, player_friend, the_man, correct_questions, current_round_deck):
+    next_chapter = "100"
+    start_over = None
+    correct_questions, start_over = test(player_name, correct_questions, current_round_deck)
+    if start_over is None:
+        print("The Mob Boss watches your hesitation, the cold calculation in his eyes melting into a slow, knowing smile.\n"
+              "\"Unless there is someone else you would rather wed?\" he murmurs, his gaze locking with yours in a shared recognition of dangerous desire.\n"
+              "You realize the desperate, reckless loyalty you showed was born of a connection deeper than survival.\n"
+              "You accept the shocking proposal, choosing not just the power, but the man himself, and sealing your fate as the true center of the Family.\n")
+        start_over = winner(player_name, correct_questions)
+    return next_chapter, correct_questions, start_over, current_round_deck
+
+def chapter_e6_confront_follower(player_name, player_friend, the_man, correct_questions, current_round_deck):
+    next_chapter = "100"
+    start_over = None
+    correct_questions, start_over = test(player_name, correct_questions, current_round_deck)
+    if start_over is None:
+        print("You slam on the brakes and jump out of your car, forcing the black sedan to screech to a halt behind you.\n"
+              "You frantically tell the man everything, and his hardened expression confirms your worst fears.\n"
+              "\"Your vehicle is burned; it's a known liability,\" he states flatly, insisting you abandon your car right here and get into his.\nHe argues that staying in your own is certain death.\n")
+        print("You are led through silent, opulent corridors to a penthouse office overlooking the city.\n"
+              "A man in a razor-sharp suit sits behind a massive mahogany desk, his expression radiating ruthless authority.\n"
+              "Without preamble, he points to a leather chair and demands, \"Start from the moment he handed you the box. Tell me everything, and do not waste my time.\"\n")
+        player_choice = input("Enter 1 to lie or 2 to tell the truth.\n").strip()
+        if player_choice == "1":
+            next_chapter = "f6"
+        elif player_choice == "2":
+            next_chapter = "f7"
+        else:
+            print("The man in the expensive suit laughs, a harsh, humorless sound that chills you to the bone.\n"
+                  "He explains your story has too many holes and too many conflicting facts to be worth their time.\n"
+                  "He makes a small, dismissive gesture, and the man who drove you there steps out from the shadows with a silenced pistol.\n")
+            start_over = assassination(player_name, correct_questions)
+    return next_chapter, correct_questions, start_over, current_round_deck
+
+def chapter_e7_home(player_name, player_friend, the_man, correct_questions, current_round_deck):
+    next_chapter = "100"
+    start_over = None
+    correct_questions, start_over = test(player_name, correct_questions, current_round_deck)
+    if start_over is None:
+        print("You carry the package into your kitchen and slice through the tape, your curiosity finally winning out.\n"
+              "As you fold back the cardboard flaps, your blood turns to ice at the sight of a digital timer surrounded by complex wiring.\n"
+              "The red numbers are ticking down rapidly, confirming that you have brought a live explosive right into your living room.\n")
+        player_choice = input(f"Enter 1 to call the police, 2 to take is somewhere else and throw it away, 3 to confront {the_man}\n").strip()
+        if player_choice == "1":
+            next_chapter = "f1"
+        elif player_choice == "2":
+            next_chapter = "f2"
+        elif player_choice == "3":
+            next_chapter = "f3"
+        else:
+            print("The red numbers on the timer hit zero while you stand paralyzed in your kitchen.\n"
+                  "A blinding white light engulfs the room, followed instantly by a thunderous roar that shatters the windows.\n"
+                  "The force of the blast tears your home apart, leaving nothing but a smoking crater in the neighborhood.\n"
+                  "Your indecision costs you your life in a fraction of a second.\n")
+            start_over = explode_death(player_name, correct_questions)
+    return next_chapter, correct_questions, start_over, current_round_deck
+
+def chapter_e8_get_help(player_name, player_friend, the_man, correct_questions, current_round_deck):
+    next_chapter = "100"
+    start_over = None
+    correct_questions, start_over = test(player_name, correct_questions, current_round_deck)
+    if start_over is None:
+        print("You drive directly to the police station and frantically explain the situation, prompting an immediate evacuation of the lobby.\n"
+              "The bomb squad successfully neutralizes the device, confirming it was rigged to level a city block.\n"
+              "Shaken by the close call, the detectives offer you full immunity, provided you testify against the syndicate in open court.\n")
+        start_over = state_evidence(player_name, correct_questions)
+    return next_chapter, correct_questions, start_over, current_round_deck
+
+def chapter_e9_ambush(player_name, player_friend, the_man, correct_questions, current_round_deck):
+    next_chapter = "100"
+    start_over = None
+    correct_questions, start_over = test(player_name, correct_questions, current_round_deck)
+    if start_over is None:
+        print("You surge out from the dark doorway, driven by pure panic, swinging the kitchen knife in a desperate, wide arc.\n"
+              "The intruder—a large figure in dark gear—doesn't even flinch; he simply sidesteps your clumsy, frantic attack.\n"
+              "He brings up a silenced pistol, and you realize with chilling certainty that your knife stood no chance against his professionalism.\n")
+        start_over = assassination(player_name, correct_questions)
+    return next_chapter, correct_questions, start_over, current_round_deck
+
+def chapter_e10_escape(player_name, player_friend, the_man, correct_questions, current_round_deck):
+    next_chapter = "100"
+    start_over = None
+    correct_questions, start_over = test(player_name, correct_questions, current_round_deck)
+    if start_over is None:
+        print("Recognizing the folly of fighting trained professionals, you use the noise of the splintering front door as cover.\n"
+              "You sprint through the kitchen, throw open the back door, and burst into the dark yard.\nYou hear shouts and heavy boots inside the house just as you scramble over the back fence.\n"
+              "You disappear into the shadows of the alley, heart hammering, having narrowly avoided certain death.\n")
+        player_choice = input(f"Enter 1 to go on the run, 2 to go to {player_friend}, or 3 to go to the police.")
+        if player_choice == "1":
+            next_chapter = "h2"
+        elif player_choice == "2":
+            next_chapter = "d2"
+        elif player_choice == "3":
+            next_chapter = "e8"
+        else:
+            print("You remain paralyzed by fear, unable to decide whether to attack or flee the incoming threat.\n"
+                  "The shattered front door is kicked inward with a crash, and two figures in dark gear step into the ruined hallway.\n"
+                  "They spot your silhouette in the kitchen immediately, and their flashlights fix on the glint of the knife in your hand.\n")
+            start_over = assassination(player_name, correct_questions)
+    return next_chapter, correct_questions, start_over, current_round_deck
+
+def chapter_e11_fight_back(player_name, player_friend, the_man, correct_questions, current_round_deck):
+    next_chapter = "100"
+    start_over = None
+    correct_questions, start_over = test(player_name, correct_questions, current_round_deck)
+    if start_over is None:
+        print("Driven by pure desperation, you shoulder the pistol and open fire on the hall before the attackers can react.\n"
+              "Your surprise attack is devastating; two figures go down immediately, their weapons clattering uselessly on the wood floor.\n"
+              "But the remaining killers react instantly, unleashing a disciplined volley of return fire that pins you to the wall.\n"
+              "You are quickly overwhelmed by their training and firepower, your heroic but futile stand ending in a hail of bullets.\n")
+        start_over = assassination(player_name, correct_questions)
+    return next_chapter, correct_questions, start_over, current_round_deck
+
+def chapter_e12_hide(player_name, player_friend, the_man, correct_questions, current_round_deck):
+    next_chapter = "100"
+    start_over = None
+    correct_questions, start_over = test(player_name, correct_questions, current_round_deck)
+    if start_over is None:
+        print("You drop silently to the floor and roll behind the massive oak headboard, pistol raised and ready to fire.\n"
+              "You hold your breath, listening as heavy boots pound the ruined floor downstairs and methodically move toward the staircase.\n"
+              "The sound of muffled, harsh voices grows louder with every step until the search team pauses right outside your bedroom door.\n"
+              "You press yourself flat against the wall, knowing the second the knob turns, the ambush will begin.\n")
+        player_choice = input("Enter 1 to ambush them or 2 to wait and lure them into the room.\n").strip()
+        if player_choice == "1":
+            print("The door bursts inward, and you open fire instantly, your first shot finding its mark and dropping the lead intruder.\n"
+                  "The second attacker reacts with terrifying speed, diving behind the doorframe and unleashing a disciplined volley of return fire that pins you down.\n"
+                  "You attempt to reposition, but their superior training is overwhelming; a bullet strikes your arm, forcing you to drop your weapon.\n"
+                  "They swarm the room instantly, subduing and dragging you out before you can even register the pain.\n")
+            start_over = assassination(player_name, correct_questions)
+        elif player_choice == "2":
+            next_chapter = "f8"
+        else:
+            print("You hold your breath, waiting for the optimal second for all the intruders to clear the doorway.\n"
+                  "Just as you prepare to spring the trap, one attacker glances downward, catching the unnatural glint of your pistol's barrel beneath the headboard.\n"
+                  "He yells a sharp warning, and the room erupts in chaos as two more attackers instantly dive for cover and pin your location.\nYou are instantly overwhelmed by suppressive fire and smoke.\n")
+            start_over = assassination(player_name, correct_questions)
+    return next_chapter, correct_questions, start_over, current_round_deck
+
+
+def chapter_f1_police(player_name, player_friend, the_man, correct_questions, current_round_deck):
+    next_chapter = "100"
+    start_over = None
+    correct_questions, start_over = test(player_name, correct_questions, current_round_deck)
+    if start_over is None:
+        print("The bomb squad storms your home and successfully neutralizes the device with mere seconds to spare.\n"
+              "Before the adrenaline can fade, you are handcuffed and transported directly to the precinct for questioning.\n"
+              "You now sit in a stark interrogation room, waiting to explain why you had a military-grade explosive in your kitchen.\n")
+        start_over = state_evidence(player_name, correct_questions)
+    return next_chapter, correct_questions, start_over, current_round_deck
+
+def chapter_f2_dispose(player_name, player_friend, the_man, correct_questions, current_round_deck):
+    next_chapter = "100"
+    start_over = None
+    correct_questions, start_over = test(player_name, correct_questions, current_round_deck)
+    if start_over is None:
+        print("You panic and drive to the nearest secluded spot, a grim alley behind a liquor store.\n"
+              "With trembling hands, you heave the package into the overflowing dumpster and pile trash bags over it to hide the evidence.\n"
+              "You speed away, heart pounding, hoping you have successfully washed your hands of this dangerous mess.\n")
+        start_over = explode_survive(player_name, correct_questions)
+    return next_chapter, correct_questions, start_over, current_round_deck
+
+def chapter_f3_the_man(player_name, player_friend, the_man, correct_questions, current_round_deck):
+    next_chapter = "100"
+    start_over = None
+    correct_questions, start_over = test(player_name, correct_questions, current_round_deck)
+    if start_over is None:
+        print("You track the man down and shove the evidence in his face, demanding to know why he tried to turn you into a suicide bomber.\n"
+              "He doesn't even blink at your accusation, his face remaining terrifyingly void of emotion. \"Loose ends are untidy,\" he whispers, before drawing a weapon with practiced speed.\n")
+        start_over = assassination(player_name, correct_questions)
+    return next_chapter, correct_questions, start_over, current_round_deck
+
+def chapter_f4_escape(player_name, player_friend, the_man, correct_questions, current_round_deck):
+    next_chapter = "100"
+    start_over = None
+    correct_questions, start_over = test(player_name, correct_questions, current_round_deck)
+    if start_over is None:
+        print("You slide the window open and scramble onto the roof, the heat of the fire licking at your heels.\n"
+              "Below, you hear your friend screaming for help, but the sound of gunfire cuts their voice short.\n"
+              "Guilt turns your stomach, but survival instinct drives you to jump into the bushes and flee into the dark.\n"
+              "You are alive, but you are now utterly alone.\n")
+        player_choice = input("Enter 1 to go on the run or 2 to go to the police").strip()
+        if player_choice == "1":
+            next_chapter = "d1"
+        elif player_choice == "2":
+            next_chapter = "g1"
+        else:
+            print("You hit the muddy lawn and scramble toward the darkness, gasping for air away from the smoke.\n"
+                  "Just as you think you’ve slipped the net, a heavy boot slams into your chest, pinning you to the wet grass.\n"
+                  "You look up into the barrel of a gun held by a silent assailant who was waiting for this exact move.\n")
+            start_over = assassination(player_name, correct_questions)
+    return next_chapter, correct_questions, start_over, current_round_deck
+
+def chapter_f5_rescue(player_name, player_friend, the_man, correct_questions, current_round_deck):
+    next_chapter = "100"
+    start_over = None
+    correct_questions, start_over = test(player_name, correct_questions, current_round_deck)
+    if start_over is None:
+        print("You wrap your shirt around your face and plunge into the smoke-filled hallway, shouting your friend's name.\n"
+              "You find them disoriented at the top of the stairs, coughing violently from the fumes.\n"
+              "You grab their arm and drag them toward the back exit, desperate to get them out before the gunmen close in.\n"
+              "However, your path is blocked by a dark figure standing calmly amidst the flames, raising a weapon to stop you both.\n")
+        player_choice = input("Enter 1 to fight the gunman or 2 to baracade in the basement and wait for police\n").strip()
+        if player_choice == "1":
+            next_chapter = "g2"
+        elif player_choice == "2":
+            next_chapter = "g3"
+        else:
+            print("You freeze in the doorway, debating your next move while the smoke swirls around you.\n"
+                  "The hesitation gives the gunman the split second he needs to spot your silhouette against the flames.\n"
+                  "A burst of automatic fire cuts through the haze, silencing your escape before it even begins.\n")
+            start_over = assassination(player_name, correct_questions)
+    return next_chapter, correct_questions, start_over, current_round_deck
+
+def chapter_f6_lie(player_name, player_friend, the_man, correct_questions, current_round_deck):
+    next_chapter = "100"
+    start_over = None
+    correct_questions, start_over = test(player_name, correct_questions, current_round_deck)
+    if start_over is None:
+        print("You launch into a fabricated version of events, conveniently omitting the police raid and the nature of the package.\n"
+              "You blame the entire fiasco on the man who hired you, throwing him under the bus to save your own skin.\n"
+              "The boss listens without interruption, but a slow, chilling smile spreads across his face as you finish.\n"
+              "He leans forward, his eyes cutting through your performance: \"I asked for the truth, not a bedtime story.\"\n")
+        print("With a dismissive flick of his wrist, the boss signals the two silent men waiting in the shadows.\n"
+              "They grab your arms with painful force, wrenching you from the chair and dragging you across the polished floor.\n")
+        start_over = assassination(player_name, correct_questions)
+    return next_chapter, correct_questions, start_over, current_round_deck
+
+def chapter_f7_truth(player_name, player_friend, the_man, correct_questions, current_round_deck):
+    next_chapter = "100"
+    start_over = None
+    correct_questions, start_over = test(player_name, correct_questions, current_round_deck)
+    if start_over is None:
+        print(f"You take a deep breath and tell the mob boss the whole, terrifying truth: the package was a bomb, and the Feds saw your face at the drop.\n"
+              f"His eyes narrow dangerously, but he cuts off your frantic apology with a sharp wave of his hand.\nHe realizes you are a far more valuable asset alive than dead.\n"
+              f"\"Good,\" he says, leaning back in his chair.\n\"Now you can work off your debt by telling us everything you know about {the_man}\".\n")
+        player_choice = input(f"He offers you a choice. Enter 1 to help them catch {the_man} or 2 to go to remain in his compound until {the_man} is caught.").strip()
+        if player_choice == "1":
+            next_chapter = "g4"
+        elif player_choice == "2":
+            next_chapter = "g5"
+        else:
+            print("You stammer, unable to choose between the immediate danger of the street and the long, uncertain wait in captivity.\n"
+                  "The mob boss's patience instantly evaporates; he rises from his desk, dismissing you with cold finality.\n"
+                  "He signals his men, declaring that your silence means you're not an asset, but a liability.\n"
+                  "You are dragged from the office, realizing your indecision has sealed your fate as a prisoner, not a partner.\n")
+            next_chapter = "g5"
+    return next_chapter, correct_questions, start_over, current_round_deck
+
+def chapter_f8_ambush(player_name, player_friend, the_man, correct_questions, current_round_deck):
+    next_chapter = "100"
+    start_over = None
+    correct_questions, start_over = test(player_name, correct_questions, current_round_deck)
+    if start_over is None:
+        print("You hold your breath until the last pair of boots crosses the threshold, successfully trapping all three men fully inside the kill zone.\n"
+              "You spring up and open fire instantly, using the surprise and the close quarters to drop two of the stunned attackers immediately.\n"
+              "The final intruder scrambles for cover, but you anticipate his move, ending the desperate fight with a final, deliberate shot.\n"
+              "Silence returns to the ruined house, broken only by your ragged breathing; you survived the impossible.\n")
+        print("Within minutes, the street outside erupts with sirens, patrol cars, and tactical units descending on the house.\n"
+              "You are instantly disarmed and separated from the scene, giving your frantic, detailed account to a skeptical lead detective.\n"
+              "Though the bodies and the ransacked house confirm your claim of self-defense, the full story of the mysterious package and the syndicate strains his belief.\n"
+              "The detective leans back, realizing this case is far more complicated—and dangerous—than a simple break-in.\n")
+        print("The detailed forensic evidence and your legal defense team convince the authorities that your actions were clear self-defense.\n"
+              "Citing the state's Stand Your Ground laws, the district attorney drops all charges and issues a public statement of exoneration.\n"
+              "You are immediately hailed as a local hero, trading the life of a quiet professional for that of a public symbol of defiance.\n")
+        start_over = winner(player_name, correct_questions)
+    return next_chapter, correct_questions, start_over, current_round_deck
+
+def chapter_g1_police(player_name, player_friend, the_man, correct_questions, current_round_deck):
+    next_chapter = "100"
+    start_over = None
+    correct_questions, start_over = test(player_name, correct_questions, current_round_deck)
+    if start_over is None:
+        print("Overcome with grief, you walk into the precinct and confess to everything, refusing to negotiate for your own safety.\n"
+              "Your full cooperation destroys the syndicate, but the state still holds you accountable for the chaos that led to your friend's death.\n"
+              "The judge acknowledges your remorse, downgrading your charge from felony murder to manslaughter.\n"
+              "You accept your fifteen-year sentence as penance, knowing it is the only justice left to offer.\n")
+        start_over = lose(player_name, correct_questions)
+    return next_chapter, correct_questions, start_over, current_round_deck
+
+def chapter_g2_fight(player_name, player_friend, the_man, correct_questions, current_round_deck):
+    next_chapter = "100"
+    start_over = None
+    correct_questions, start_over = test(player_name, correct_questions, current_round_deck)
+    if start_over is None:
+        print("You shove your friend behind the kitchen island and hurl yourself at the dark figure with a desperate scream.\n"
+              "Caught off guard by your sudden attack, the gunman fumbles his weapon just as you slam into him with your full body weight.\n"
+              "He crashes backward through the screen door, tumbling onto the patio and clearing the path for your escape.\n"
+              "You don't wait to see if he gets up, grabbing your friend and sprinting into the safety of the night.\n")
+        print(f"{player_friend} is going to the police and encourages you to join them.\n")
+        player_choice = input(f"Enter 1 to go to the police or 2 to leave {player_friend} and go on the run.").strip()
+        if player_choice == "1":
+            start_over = state_evidence(player_name, correct_questions)
+        elif player_choice == "2":
+            next_chapter = "d1"
+        else:
+            print("You stand frozen in the neighbor's yard, torn between your friend's pleas to find an officer and your own instinct to flee.\n"
+                  "The precious seconds you waste arguing allow the gunman you knocked down to recover and circle the fence.\n"
+                  "He spots your silhouettes against the streetlights and raises his weapon without a word.\n")
+            start_over = lose(player_name, correct_questions)
+    return next_chapter, correct_questions, start_over, current_round_deck
+
+def chapter_g3_basement(player_name, player_friend, the_man, correct_questions, current_round_deck):
+    next_chapter = "100"
+    start_over = None
+    correct_questions, start_over = test(player_name, correct_questions, current_round_deck)
+    if start_over is None:
+        print("You drag your coughing friend down the stairs and slam the heavy door, throwing the deadbolt just as bullets splinter the wood frame.\n"
+              "You frantically pile old boxes and furniture against it, listening to the terrifying roar of the fire consuming the floor above you.\n"
+              "Smoke begins to curl down from the ceiling, and you realize you have trapped yourselves in a slowly heating oven.\n")
+        start_over = lose(player_name, correct_questions)
+    return next_chapter, correct_questions, start_over, current_round_deck
+
+def chapter_g4_help_mob(player_name, player_friend, the_man, correct_questions, current_round_deck):
+    next_chapter = "100"
+    start_over = None
+    correct_questions, start_over = test(player_name, correct_questions, current_round_deck)
+    if start_over is None:
+        print("You swallow hard, realizing this is the only way to survive, and nod slowly to accept the deal.\n"
+              "The mob boss immediately softens, exchanging his hostility for cold, professional instruction on your new task.\n"
+              "He slides a burner phone across the desk and tells you that your job is to use your civilian contacts to locate the courier.\n"
+              "You are officially working for the syndicate, and your first job starts immediately.\n")
+        player_choice = input(f"Enter 1 to try to find {the_man} or 2 to run from the mob.\n").strip()
+        if player_choice == "1":
+            next_chapter = "h1"
+        elif player_choice == "2":
+            next_chapter = "h2"
+        else:
+            print(f"You are hunched over the mob's burner phone on a deserted street corner, reviewing old contacts, when a shadow suddenly falls over you.\n"
+                  f"{the_man} stands there, his expression a mask of betrayed fury.\n\"They sent you, didn\'t they?\" he accuses, raising a silenced weapon before you can even stand up.\n"
+                  f"A single, muted shot rings out, and the mob's first assignment ends in bloody failure.\n")
+            start_over = lose(player_name, correct_questions)
+    return next_chapter, correct_questions, start_over, current_round_deck
+
+def chapter_g5_refuse_mob(player_name, player_friend, the_man, correct_questions, current_round_deck):
+    next_chapter = "100"
+    start_over = None
+    correct_questions, start_over = test(player_name, correct_questions, current_round_deck)
+    if start_over is None:
+        print("The days melt into a monotonous loop defined by the rusty pipes overhead and the guards' silent shifts.\n"
+              "You are confined to a cold, windowless room, your only task being to sit and wait in the dim light.\n"
+              "The occasional creak of footsteps in the hallway is the only reminder of the outside world, yet you feel completely forgotten by it.\n")
+        print("Weeks later, the mob boss appears and coldly confirms that the man who hired you has finally been apprehended.\n"
+              "Keeping his word, he orders you released onto the street with neither apology nor explanation.\n"
+              "The wave of immediate relief quickly curdles into despair when you find your apartment sealed by the Feds and realize your old job fired you weeks ago.\n"
+              "You are free, but you have nothing left of your former life.\n")
+        start_over = winner(player_name, correct_questions)
+    return next_chapter, correct_questions, start_over, current_round_deck
+
+def chapter_h1_find_curier(player_name, player_friend, the_man, correct_questions, current_round_deck):
+    next_chapter = "100"
+    start_over = None
+    correct_questions, start_over = test(player_name, correct_questions, current_round_deck)
+    if start_over is None:
+        print(f"You go back to the park where you first met {the_man} and wait. After several hours, you spot the courier walking quickly down the main path, his eyes scanning the park with intense paranoia.\n"
+              f"He hasn't seen you yet, but he is visibly carrying a large, suspicious duffel bag and moving like a hunted animal.\nYou realize this is the only chance you'll get to complete your mob assignment.\n")
+        player_choice = input("Enter 1 to notify the boss or 2 to follow the man yourself")
+        if player_choice == "1":
+            next_chapter = "i1"
+        elif player_choice == "2":
+            next_chapter = "i2"
+        else:
+            print(f"You hesitate for a second too long, and {the_man}\'s paranoid gaze sweeps across your position, freezing when he recognizes your face.\n"
+                  f"The realization is instant, and he knows exactly why you are there: the mob sent you to find him.\nWith a roar of betrayal, he draws a pistol and fires before you can even stand up.\n")
+            start_over = assassination(player_name, correct_questions)
+    return next_chapter, correct_questions, start_over, current_round_deck
+
+def chapter_h2_run_mob(player_name, player_friend, the_man, correct_questions, current_round_deck):
+    next_chapter = "100"
+    start_over = None
+    correct_questions, start_over = test(player_name, correct_questions, current_round_deck)
+    if start_over is None:
+        print("You ride a cheap bus to a distant state, living off cash-only jobs under a false name and constantly ditching burner phones.\n"
+              "After weeks of exhausting paranoia, you finally allow yourself a single moment of quiet relief in a cramped diner booth downtown.\n"
+              "As the waitress sets down your coffee, a tall, silent man slides into the seat opposite you.\nHe raises a photograph of your old face and simply nods, ending your life on the run.\n")
+        start_over = lose(player_name, correct_questions)
+    return next_chapter, correct_questions, start_over, current_round_deck
+
+def chapter_i1_call_boss(player_name, player_friend, the_man, correct_questions, current_round_deck):
+    next_chapter = "100"
+    start_over = None
+    correct_questions, start_over = test(player_name, correct_questions, current_round_deck)
+    if start_over is None:
+        print(f"You quickly pull out the burner phone and dial the encrypted number the boss gave you.\n"
+              f"The boss answers immediately, and you whisper {the_man}\'s location in the park, voice heavy with betrayal.\n"
+              f"He acknowledges the information with a cold grunt and orders you to disappear from the area instantly.\n"
+              f"You hang up, knowing you have sealed the fate of the man who first put you in danger.\n")
+        player_choice = input("Enter 1 to leave or 2 to stay and watch").strip()
+        if player_choice == "1":
+            next_chapter = "j1"
+        elif player_choice == "2":
+            next_chapter = "j2"
+        else:
+            print("Your indecision costs you precious seconds, leaving you paralyzed behind the park bench.\n"
+                  "Two black SUVs screech to a halt at the curb, and silent men in dark suits pour out, instantly fanning across the area.\n"
+                  "You are surrounded, realizing with sickening clarity that the mob was tracking you the entire time.\n"
+                  "You are trapped between your target and the very people you tried to serve, with no chance of escape.\n")
+            print("You dive behind the nearest stone bench just as the mob and the courier erupt in a sudden hail of gunfire.\n"
+                  "The courier spots you and recognizes you instantly as the person sent to hunt him.\n"
+                  "He directs his weapon toward you, and now you are trapped in a deadly crossfire, with bullets ripping into the stone from both directions.\n")
+            start_over = assassination(player_name, correct_questions)
+    return next_chapter, correct_questions, start_over, current_round_deck
+
+def chapter_j1_leave(player_name, player_friend, the_man, correct_questions, current_round_deck):
+    next_chapter = "100"
+    start_over = None
+    correct_questions, start_over = test(player_name, correct_questions, current_round_deck)
+    if start_over is None:
+        print("You drive away from the park and wait in silent dread for the mob boss to contact you, watching the news for any sign of the inevitable clash.\n"
+              "Hours later, the burner phone finally rings; the boss confirms the courier has been apprehended, calling the operation a complete success.\n"
+              "He tells you the information was solid, and your debt to the organization is officially considered paid.\n"
+              "He instructs you to dispose of the burner phone and walk away, never speaking of the syndicate again.\n")
+        start_over = winner(player_name, correct_questions)
+    return next_chapter, correct_questions, start_over, current_round_deck
+
+def chapter_j2_stay(player_name, player_friend, the_man, correct_questions, current_round_deck):
+    next_chapter = "100"
+    start_over = None
+    correct_questions, start_over = test(player_name, correct_questions, current_round_deck)
+    if start_over is None:
+        print("You press yourself against the vendor stand, morbidly watching the hit unfold, when you spot the courier draw a small, hidden knife beneath his coat.\n"
+              "Just as he lunges toward the mob boss's central lieutenant, you shout a warning and rush forward, tackling the courier's legs.\n"
+              "The sudden distraction gives the security team the split second they need, and they neutralize the threat with overwhelming force.\n"
+              "The relieved lieutenant stares at you, recognizing that you just saved his life, and orders you immediately taken back to the main office.\n")
+        print("The mob boss smiles, a genuine expression of respect you hadn't seen before, and tells you your loyalty is rare.\n"
+              "He confirms that your debt is erased and offers you two final paths forward for saving his lieutenant's life.\n")
+        player_choice = input("Enter 1 to walk away forever and return to your old life or 2 to join the family permanently by marrying his cousin.\n").strip()
+        if player_choice == "1":
+            next_chapter = "k1"
+        elif player_choice == "2":
+            next_chapter = "k2"
+        else:
+            next_chapter = "e5"
+    return next_chapter, correct_questions, start_over, current_round_deck
+
+def chapter_k1_walk_away(player_name, player_friend, the_man, correct_questions, current_round_deck):
+    next_chapter = "100"
+    start_over = None
+    correct_questions, start_over = test(player_name, correct_questions, current_round_deck)
+    if start_over is None:
+        print("The mob boss nods once, respecting your choice, and hands you a small, untraceable payment, ordering you to disappear.\n"
+              "You leave the office, find a secluded spot, and destroy the burner phone and everything else that ties you to the syndicate.\n"
+              "Your survival is a miracle, but the world you return to feels foreign and fragile.\nYou are free, yet forever haunted by the memory of the shadows you walked through.\n")
+        start_over = winner(player_name, correct_questions)
+    return next_chapter, correct_questions, start_over, current_round_deck
+
+def chapter_k2_marry(player_name, player_friend, the_man, correct_questions, current_round_deck):
+    next_chapter = "100"
+    start_over = None
+    correct_questions, start_over = test(player_name, correct_questions, current_round_deck)
+    if start_over is None:
+        print("You meet the boss\’s eyes, accepting the offer and the terrifying, immediate shift into a new life of power.\n"
+              "The boss’s hostility is instantly replaced by familial regard, and the wedding is arranged with speed and cold efficiency.\n"
+              "You marry the cousin in a closed ceremony, sealing your fate as a permanent member of the syndicate.\nYour old identity is erased, replaced by immense wealth, protection, and the constant, chilling duty to The Family.\n")
+        start_over = winner(player_name, correct_questions)
+    return next_chapter, correct_questions, start_over, current_round_deck
+
+def chapter_i2_follow(player_name, player_friend, the_man, correct_questions, current_round_deck):
+    next_chapter = "100"
+    start_over = None
+    correct_questions, start_over = test(player_name, correct_questions, current_round_deck)
+    if start_over is None:
+        print(f"You keep your distance and track {the_man} through the crowded streets, convinced you can lead the mob to him later.\n"
+              f"He abruptly cuts down a quiet, narrow maintenance alley, and you hurry to follow him into the darkness.\n"
+              f"Just as you step past the threshold, the courier emerges from the shadows, his suppressed pistol aimed right at your chest.\n")
+        start_over = assassination(player_name, correct_questions)
+    return next_chapter, correct_questions, start_over, current_round_deck
+
+CHAPTER_MAP = {
+    "a1": chapter_a1_job_offer,
+    "b1": chapter_b1_deliver,
+    "b2": chapter_b2_refuse,
+    "c1": chapter_c1_police,
+    "c2": chapter_c2_run,
+    "c3": chapter_c3_hide,
+    "c4": chapter_c4_go_inside,
+    "c5": chapter_c5_call_police,
+    "d1": chapter_d1_run,
+    "d2": chapter_d2_friend,
+    "d3": chapter_d3_the_man,
+    "d4": chapter_d4_deliver,
+    "d5": chapter_d5_take_it,
+    "d6": chapter_d6_search,
+    "d7": chapter_d7_gun,
+    "e1": chapter_e1_lie,
+    "e2": chapter_e2_truth,
+    "e3": chapter_e3_police_station,
+    "e4": chapter_e4_call_police,
+    "e5": chapter_e5_boss,
+    "e6": chapter_e6_confront_follower,
+    "e7": chapter_e7_home,
+    "e8": chapter_e8_get_help,
+    "e9": chapter_e9_ambush,
+    "e10": chapter_e10_escape,
+    "e11": chapter_e11_fight_back,
+    "e12": chapter_e12_hide,
+    "f1": chapter_f1_police,
+    "f2": chapter_f2_dispose,
+    "f3": chapter_f3_the_man,
+    "f4": chapter_f4_escape,
+    "f5": chapter_f5_rescue,
+    "f6": chapter_f6_lie,
+    "f7": chapter_f7_truth,
+    "f8": chapter_f8_ambush,
+    "g1": chapter_g1_police,
+    "g2": chapter_g2_fight,
+    "g3": chapter_g3_basement,
+    "g4": chapter_g4_help_mob,
+    "g5": chapter_g5_refuse_mob,
+    "h1": chapter_h1_find_curier,
+    "h2": chapter_h2_run_mob,
+    "j1": chapter_j1_leave,
+    "j2": chapter_j2_stay,
+    "k1": chapter_k1_walk_away,
+    "k2": chapter_k2_marry,
+    "i1": chapter_i1_call_boss,
+    "i2": chapter_i2_follow,
+    "100": None
+}
+
+def load_next_chapter(player_name, player_friend, the_man, correct_questions, current_round_deck, target_chapter):
+    #get the chapter name
+    function_to_run = CHAPTER_MAP[target_chapter]
+    #default if the win/lose logic fails and the program advances.
+    if function_to_run is None:
+        return None, None, None, True
+    next_chapter, correct_questions, start_over, current_round_deck = function_to_run(
+        player_name, player_friend, the_man, correct_questions, current_round_deck
+    )
+    return correct_questions, current_round_deck, next_chapter, start_over
+
+#Start the game, allows players to start over
+def start_game():
+    player_name = input("What is your name?\n").strip()
+    player_friend = input("What is the name of a friend?\n").strip()
+    the_man = input("What is a random man’s name?\n").strip()
+    print(
+        "Instructions:\nYou will be prompted to make various choices.\nYou must solve Python equations to move forward to the next part of the story.\n"
+        "Enter the answer in the form they will appear if Python makes the calculation.\nIntegers should be entered as a whole number. Example: 14\n"
+        "Floats should be entered in float format. Example: 14.0\nBoolean values should be entered as True or False.\n")
+    print("*** MATURE CONTENT WARNING ***\nThis story contains intense, mature themes and is intended for audiences 18 or older.\n"
+          "The narrative includes:\n• Explicit depictions of gun violence and assassination\n• Organized crime and coercion\n• Home invasion and physical assault\n• Thematic elements of domestic terrorism and imprisonment\n"
+          "• Extreme peril and sudden, irreversible character death.\nPlayer discretion is strongly advised.\n")
+    input("Press enter to begin.\n")
+    return player_name, player_friend, the_man
+
+#################################Program Start#################################
+
+print(r'''
+         /\/\
+        /  \ \
+       / /\ \ \
+       \/ /\/ /
+       / /\/ /\
+      / /\ \/\ \
+     / / /\ \ \ \
+  /\/ / / /\ \ \ \/\
+ /  \/ / /  \ \ \ \ \
+/ /\ \/ /    \ \/\ \ \
+\/ /\/ /      \/ /\/ /
+/ /\/ /\      / /\/ /\
+\ \ \/\ \    / /\ \/ /
+ \ \ \ \ \  / / /\  /
+  \/\ \ \ \/ / / /\/
+     \ \ \ \/ / /
+      \ \/\ \/ /
+       \/ /\/ /
+       / /\/ /\
+       \ \ \/ /
+        \ \  /
+         \/\/
+''')
+
+
+
+
+player_name, player_friend, the_man = start_game()
+while True:
+    current_round_deck = []
+    correct_questions = 0
+    next_chapter = "a1"
+    start_over = None
+    print("Welcome to the Adventure Generator!")
+    player_age = input("Are you over 18? Enter \'Y\' for yes or \'N\' for no.\n").strip().upper()
+    if player_age == "Y":
+        while start_over is None:
+            correct_questions, current_round_deck, next_chapter, start_over = load_next_chapter(player_name, player_friend, the_man, correct_questions, current_round_deck, next_chapter)
+    else:
+        print("Visit the marketplace to find age appropriate applications. Happy Gaming!!!")
+        break
+    if start_over == False:
+        break
+print("Thank you for stepping into the shadows of the syndicate.\n"
+      "Whether you found freedom, power, or a tragic end, you have only experienced one strand of the conspiracy.\n"
+      "Return soon to test your Python knowledge against the twists of fate and discover all 57 pathways this adventure has to offer.\n")
+
+
+
