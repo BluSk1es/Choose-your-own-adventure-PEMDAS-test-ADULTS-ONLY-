@@ -1117,7 +1117,7 @@ while True:
         break
     if start_over == False:
         break
-print("Thank you for stepping into the shadows of the syndicate.\n"
+input("Thank you for stepping into the shadows of the syndicate.\n"
       "Whether you found freedom, power, or a tragic end, you have only experienced one strand of the conspiracy.\n"
       "Return soon to test your Python knowledge against the twists of fate and discover all 57 pathways this adventure has to offer.\n")
 
